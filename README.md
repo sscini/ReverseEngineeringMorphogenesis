@@ -9,7 +9,7 @@
 ## Prerequisite Libraries
 
 - Python libraries: Numpy, Pandas, Matplotlib, Seaborn, Plotly, Surrogate Modelling Toolbox (1.0.0), Similarity Measures, Spatial-EFD, GPyTorch (1.5.0), Signac-flow, scikit-learn (0.24.2)
-- Modeling environment: Surface Evolver (2.40)
+- Modeling environment: Surface Evolver (2.40)spatial
 - Supported OS: Linux (Ubuntu (20.0.4))
 
 
