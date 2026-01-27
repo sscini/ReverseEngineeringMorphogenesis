@@ -14,7 +14,7 @@ Institution: University of Notre Dame
 
 # Adding dependencies folder to the path. Dependencies stores all teh classes used in bayesian optimization BO
 import sys
-sys.path.append("/home/nkumar4/Desktop/")
+sys.path.append("/Users/scini/Documents/GitHub/ReverseEngineeringMorphogenesis/multiobjective_update_StephenCini2026")
 
 # Importing libraries
 import pandas as pd
