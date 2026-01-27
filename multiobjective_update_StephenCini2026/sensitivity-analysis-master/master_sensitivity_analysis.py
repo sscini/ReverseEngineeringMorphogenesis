@@ -13,12 +13,18 @@ Created on Tue Jul  6 23:35:16 2021
 @author: Nilay Kumar
 email: nkumar4@nd.edu
 Multicellular Systems Engineering Lab (MSELab)
+
+Updates started Tue Jan 27 2026
+Updated by Stephen Cini
+email: scini@nd.edu
+Dowling Lab
+
 Department of Chemical and Biomolecular Engineering
 Institution: University of Notre Dame
 """
 # Adding dependencies folder to the path. Dependencies stores all teh classes used in bayesian optimization BO
 import sys
-sys.path.append('/Users/scini/Library/CloudStorage/GoogleDrive-scini@nd.edu/Shared drives/Stephen Cini Research/Projects/eMB/ucr_data')
+sys.path.append("/Users/scini/Documents/GitHub/ReverseEngineeringMorphogenesis/multiobjective_update_StephenCini2026")
 
 # Importing libraries
 import pandas as pd

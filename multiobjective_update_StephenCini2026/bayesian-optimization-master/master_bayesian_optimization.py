@@ -8,6 +8,12 @@ Created on Tue Jul  6 23:35:16 2021
 @author: Nilay Kumar
 email: nkumar4@nd.edu
 Multicellular Systems Engineering Lab (MSELab)
+
+Updates started Tue Jan 27 2026
+Updated by Stephen Cini
+email: scini@nd.edu
+Dowling Lab
+
 Department of Chemical and Biomolecular Engineering
 Institution: University of Notre Dame
 """
