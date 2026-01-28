@@ -9,7 +9,7 @@
 ## Prerequisite Libraries
 
 - Python libraries: Numpy, Pandas, Matplotlib, Seaborn, Plotly, Surrogate Modelling Toolbox (1.0.0), Similarity Measures, Spatial-EFD, GPyTorch (1.5.0), Signac-flow, scikit-learn (0.24.2)
-- Modeling environment: Surface Evolver (2.40)spatial
+- Modeling environment: Surface Evolver (2.40)
 - Supported OS: Linux (Ubuntu (20.0.4))
 
 
@@ -52,4 +52,5 @@ Nilay Kumar
 Multicellular Systems Engineering Lab
 Department of Chemical and Biomolecular Engineering
 University of Notre Dame, IN
+
 Email: nkumar4@nd.edu
