@@ -12,6 +12,11 @@
 - Modeling environment: Surface Evolver (2.40)spatial
 - Supported OS: Linux (Ubuntu (20.0.4))
 
+January 2026 Update:
+-Python libraries (in order of installation): Python (3.14.2), Numpy (2.4.1), Scipy (1.17.0), Matplotlib (3.10.8), Seaborn (0.13.2), Plotly (6.5.2), Surrogate Modelling Toolbox (2.10.1), Cython (3.2.4), Spatial-EFD (1.2.1), pytorch (2.10.0), gpytorch (1.15.1), signac flow (0.29.0), scikit-learn (1.8.0)
+
+- Modeling environment: Surface Evolver (2.70)
+- Supported OS: Mac (Tahoe 26.2)
 
 ## Library Description
 
@@ -52,4 +57,5 @@ Nilay Kumar
 Multicellular Systems Engineering Lab
 Department of Chemical and Biomolecular Engineering
 University of Notre Dame, IN
+
 Email: nkumar4@nd.edu
