@@ -124,7 +124,7 @@ optimizer_type = 1
 # 	NOTE: Make sure to change the next line if changineg this
 se_filename = 'wingDisc'
 # Path containing the surface evolver installation and se filename to run it
-se_path = "evolver wingDisc.fe"
+se_path = "/Users/scini/Applications/Evolver270-OSX/evolver wingDisc.fe"
 
 
 """
