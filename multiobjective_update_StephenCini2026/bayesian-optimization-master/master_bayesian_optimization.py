@@ -29,6 +29,7 @@ sys.path.append(
 import pandas as pd
 import matplotlib.pyplot as plt
 import spatial_efd
+import time
 import math
 import signac
 import numpy as np
@@ -43,6 +44,7 @@ from matplotlib import pyplot as plt
 from sklearn.preprocessing import StandardScaler
 from smt.sampling_methods import LHS
 
+
 # Importing helper libraries for bayesian optimization
 from dependencies.data_preprocessing_class import DataPreprocessing
 from dependencies.gaussian_process_regression_class import GaussianProcessRegression
@@ -53,6 +55,8 @@ from dependencies.feature_extractor_4 import FeatureExtractor
 """
 User described inputs
 """
+# Add timestamp to final output files to avoid overwriting
+timestamp = time.strftime("%Y%m%d-%H%M")
 # Number of parameters that need to be estimated during BO
 num_parameters_LHS = 7
 # List containing parameter indices that need to be estimated using the BO framework
@@ -66,7 +70,7 @@ geometry_data_type = 1
 # Total number of parameter sets samoled during calculation of acquisition function
 num_samples_af = 10000
 # Total number of iteration for the BO process
-n_iterations = 1
+n_iterations = 3
 # Number of samples from the total samples taht will constitute the training data
 split_size = 149
 # Total number of data points that are used fro tarining the GP model
@@ -116,7 +120,7 @@ num_harmonics_efd = 20
 # A parameter to define the tradeoff between exploration and exploitation during BO
 exploration_param_val = 0.05
 # Total number of iterations for training the GP model
-num_iteration_gpr = 100
+num_iteration_gpr = 1000
 # Selecting the type of optimizer used for training of GP model
 # 1: Adam Optimizer 2: LBFGS
 optimizer_type = 1
@@ -213,7 +217,7 @@ exp_data[:, 1] = yt_exp
 # Calculating the frechet distance betwen the target shape and the simulation data present in the master_feature_output data
 # Initializing the array to store the output data for GP mode
 error_simulation_experimental_data = np.zeros(num_samples)
-# Itaetaing through the number of samples
+# Iterating through the number of samples
 for i in range(num_samples):
     temp = master_feature_output[i, :]  # Reading in the efd coefficients
     temp2 = np.reshape(
@@ -221,23 +225,23 @@ for i in range(num_samples):
     )  # Reshaping the EFD coefficensts for taking reverse EFD
     xt, yt = spatial_efd.inverse_transform(
         temp2, harmonic=num_harmonics_efd
-    )  # Perfroming reverse EFD to obtaing x y coordinates of teh basal contour
+    )  # Performing reverse EFD to obtain x y coordinates of the basal contour
     sim_data = np.zeros(
         (len(xt), 2)
-    )  # Initializing an array to store the xy data normalzied for simulations
+    )  # Initializing an array to store the xy data normalized for simulations
     sim_data[:, 0] = xt
     sim_data[:, 1] = yt
     error_simulation_experimental_data[i] = similaritymeasures.frechet_dist(
         exp_data, sim_data
     )  # Calculating Frechet distance
 
-# Taking a negativbe of the Frechet distance to genrate the input data for teh GP model
+# Taking a negative of the Frechet distance to generate the input data for the GP model
 data_y = (np.reshape(error_simulation_experimental_data, (num_samples, 1))) * (-1)
 print(np.shape(data_y))
 
 """
 STEP 3: 
-1) Define a ExactGP class containing GP model settings for the gaussianProcessRegression class
+1) Define a ExactGP class containing GP model settings for the GaussianProcessRegression class
 2) The input and output data is next split into training and test data
 3) lastly sample a large number of points for computation of acquisition function
 """
@@ -368,7 +372,8 @@ for i in range(n_iterations):
     os.system("rm specificenergylog.txt")
 
     # Defining filename for plot showing overlap between the sampled shape and the target shape
-    filename_shape_plot = str(i) + "_sapled_target_xy_plot.svg"
+    # Making png for now
+    filename_shape_plot = str(i) + "_sampled_target_xy_plot.png" # originally .svg"
     # Plotting target data
     plt.scatter(xt_exp, yt_exp, color='black')
     # Plotting sampled data
@@ -378,7 +383,10 @@ for i in range(n_iterations):
     plt.ylabel("y [nondimensional]")
     # Plotting legends
     # plt.legend()
-    plt.savefig("contour_evolution_plots/" + filename_shape_plot)
+    contour_plot_folder = "/Users/scini/Library/CloudStorage/GoogleDrive-scini@nd.edu/Shared drives/Stephen Cini Research/Projects/eMB/ucr_data/contour_evolution_plots"
+    contour_plot_path= os.path.join(contour_plot_folder, filename_shape_plot)
+
+    plt.savefig(contour_plot_path)
     plt.close()
 
     """ 5.5 Calculating error: Calculating frechet distance between the sampled shape and the experimental data"""
@@ -414,7 +422,9 @@ for i in range(n_iterations):
     plt.scatter(index_sampled, error_target_sampled, color="red")
     plt.ylabel("Index")
     plt.xlabel("Error between target and SE shape")
-    plt.savefig("error_sampled_plots/" + filename_shape_plot)
+    error_plot_folder = "/Users/scini/Library/CloudStorage/GoogleDrive-scini@nd.edu/Shared drives/Stephen Cini Research/Projects/eMB/ucr_data/error_sampled_plots"
+    error_plot_path = os.path.join(error_plot_folder, filename_error_iteration)
+    plt.savefig(error_plot_path)
     plt.close()
     # Removing variables generated during teh iteration to handle memory issues
     del x_sampled
