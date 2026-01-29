@@ -64,9 +64,9 @@ geometry_data = 'input_data/case1_pzornai_ctrl.txt'
 # geometry_type = 2: synthetic data from a surface evolver output
 geometry_data_type = 1
 # Total number of parameter sets samoled during calculation of acquisition function
-num_samples_af = 100000
+num_samples_af = 10000
 # Total number of iteration for the BO process
-n_iterations = 3
+n_iterations = 1
 # Number of samples from the total samples taht will constitute the training data
 split_size = 149
 # Total number of data points that are used fro tarining the GP model
@@ -116,7 +116,7 @@ num_harmonics_efd = 20
 # A parameter to define the tradeoff between exploration and exploitation during BO
 exploration_param_val = 0.05
 # Total number of iterations for training the GP model
-num_iteration_gpr = 5000
+num_iteration_gpr = 100
 # Selecting the type of optimizer used for training of GP model
 # 1: Adam Optimizer 2: LBFGS
 optimizer_type = 1
