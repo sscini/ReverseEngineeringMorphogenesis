@@ -70,7 +70,7 @@ geometry_data_type = 1
 # Total number of parameter sets samoled during calculation of acquisition function
 num_samples_af = 100000
 # Total number of iteration for the BO process
-n_iterations = 100
+n_iterations = 3
 # Number of samples from the total samples taht will constitute the training data
 split_size = 149
 # Total number of data points that are used fro tarining the GP model
@@ -384,9 +384,9 @@ for i in range(n_iterations):
     # Plotting legends
     # plt.legend()
     contour_plot_folder = "/Users/scini/Library/CloudStorage/GoogleDrive-scini@nd.edu/Shared drives/Stephen Cini Research/Projects/eMB/ucr_data/contour_evolution_plots"
-    run_time_folder_contour = os.path.join(contour_plot_folder, "run_" + timestamp)
-    os.makedirs(run_time_folder_contour, exist_ok=True)
-    contour_plot_path= os.path.join(run_time_folder_contour, filename_shape_plot)
+    run_time_folder = os.path.join(contour_plot_folder, "run_" + timestamp)
+    os.makedirs(run_time_folder, exist_ok=True)
+    contour_plot_path= os.path.join(run_time_folder, filename_shape_plot)
 
     plt.savefig(contour_plot_path)
     plt.close()
@@ -427,7 +427,7 @@ for i in range(n_iterations):
     error_plot_folder = "/Users/scini/Library/CloudStorage/GoogleDrive-scini@nd.edu/Shared drives/Stephen Cini Research/Projects/eMB/ucr_data/error_sampled_plots"
     run_time_folder_error = os.path.join(error_plot_folder, "run_" + timestamp)
     os.makedirs(run_time_folder_error, exist_ok=True)
-    error_plot_path = os.path.join(run_time_folder_error, filename_error_iteration)
+    error_plot_path = os.path.join(error_plot_folder, filename_error_iteration)
     plt.savefig(error_plot_path)
     plt.close()
     # Removing variables generated during teh iteration to handle memory issues
