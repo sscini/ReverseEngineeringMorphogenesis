@@ -70,7 +70,7 @@ geometry_data_type = 1
 # Total number of parameter sets samoled during calculation of acquisition function
 num_samples_af = 100000
 # Total number of iteration for the BO process
-n_iterations = 25
+n_iterations = 100
 # Number of samples from the total samples taht will constitute the training data
 split_size = 149
 # Total number of data points that are used fro tarining the GP model
