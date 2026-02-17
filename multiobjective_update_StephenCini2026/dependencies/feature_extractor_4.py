@@ -41,8 +41,8 @@ class FeatureExtractor:
         A) geometry_data: Datafile containing geometry information,  atext file containing the vertices of nodes from Surface Evolver output file
         B) edge_data: DataFrame or Excel filename containing edge information and its association or cell type
         C) n_squamous: Number of squamous cells (fixed = 20)
-        D) n_cuboidal: Number of squamous cells (fixed = 10)
-        E) n_columnar: Number of squamous cells (fixed = 100)
+        D) n_cuboidal: Number of cuboidal cells (fixed = 10)
+        E) n_columnar: Number of columnar cells (fixed = 100)
         """
         # save geometry data
         if type(geometry_data) is str:
@@ -152,11 +152,11 @@ class FeatureExtractor:
     def tissue_efd_coeff(self, harmonic):
         """EFD fit for the whole tissue geometry
 
-          Arguewmwnts
+          Arguments
                   1) harmonic (int, scalar): Number of harmonics or terms in efd estimation
 
           Returns
-                  1) coeffs (float, 4 x n_harmonics): n array containing EFD coefficients normalized against size
+        1) coeffs (float, 4 x n_harmonics): n array containing EFD coefficients normalized against size
         2) coeffs_norm (float, 4 x n_harmonics): an array containing EFD coefficients normalized against orientation and size
         3) rotation (float, scalar): The angle as a reasults of rotation during normalization
 
@@ -165,27 +165,51 @@ class FeatureExtractor:
         """
         # Checking if the file cobtaining the vertices is not empty
         if self.vpos_x != 0:
-            # # Extracting the nodes located in the basal surface of tissue (both squamous and columnar)
-            contour_basal_x = self.vpos_x[self.n_total : 2 * self.n_total - 1]
-            contour_basal_y = self.vpos_y[self.n_total : 2 * self.n_total - 1]
+            # Extracting Basal Surface
+            basal_x = self.vpos_x[self.n_total : 2 * self.n_total - 1]
+            basal_y = self.vpos_y[self.n_total : 2 * self.n_total - 1]
+            
+            # Extracting Apical Surface (Adjust indices based on your geometry)
+            # Note: If apical is the first set of nodes, it might be 0 : n_total
+            apical_x = self.vpos_x[0 : self.n_total] 
+            apical_y = self.vpos_y[0 : self.n_total]
 
-            # Using spatial efd library to extract efd coefficients from tissue boundary points
-            coeffs = spatial_efd.CalculateEFD(
-                contour_basal_x, contour_basal_y, harmonic
-            )
-            # Normalizing the coefficients against rotation and size
-            coeffs_norm, rotation = spatial_efd.normalize_efd(
-                coeffs, size_invariant=True
-            )
+            # Calculate for Basal
+            c_basal = spatial_efd.CalculateEFD(basal_x, basal_y, harmonic)
+            cn_basal, rot_basal = spatial_efd.normalize_efd(c_basal, size_invariant=True)
 
-            # Reverse EFD for plotting the normalized tissue shape
-            xt, yt = spatial_efd.inverse_transform(coeffs_norm, harmonic=harmonic)
+            # Calculate for Apical
+            c_apical = spatial_efd.CalculateEFD(apical_x, apical_y, harmonic)
+            cn_apical, rot_apical = spatial_efd.normalize_efd(c_apical, size_invariant=True)
+            
+            return c_basal, cn_basal, rot_basal, c_apical, cn_apical, rot_apical
         else:
-            coeffs = 0
-            coeffs_norm = 0
+            # Return 6 zeros/nones to maintain the structure
+            return 0, 0, 0, 0, 0, 0
+        
+        # # Old code, keeping until confirmed that the new code is working
+        # if self.vpos_x != 0:
+        #     # # Extracting the nodes located in the basal surface of tissue (both squamous and columnar)
+        #     contour_basal_x = self.vpos_x[self.n_total : 2 * self.n_total - 1]
+        #     contour_basal_y = self.vpos_y[self.n_total : 2 * self.n_total - 1]
 
-        # Passing coefficient as a return value of this function
-        return coeffs, coeffs_norm, rotation
+        #     # Using spatial efd library to extract efd coefficients from tissue boundary points
+        #     coeffs = spatial_efd.CalculateEFD(
+        #         contour_basal_x, contour_basal_y, harmonic
+        #     )
+        #     # Normalizing the coefficients against rotation and size
+        #     coeffs_norm, rotation = spatial_efd.normalize_efd(
+        #         coeffs, size_invariant=True
+        #     )
+
+        #     # Reverse EFD for plotting the normalized tissue shape
+        #     xt, yt = spatial_efd.inverse_transform(coeffs_norm, harmonic=harmonic)
+        # else:
+        #     coeffs = 0
+        #     coeffs_norm = 0
+
+        # # Passing coefficient as a return value of this function
+        # return coeffs, coeffs_norm, rotation
 
     def tissue_local_curvature(self):
         """Extracts local tissue curvature along the exterior basal surface

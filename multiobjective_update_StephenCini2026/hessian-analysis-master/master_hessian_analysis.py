@@ -35,6 +35,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import spatial_efd
 import math
+import time
 import signac
 import numpy as np
 import os.path
@@ -156,6 +157,7 @@ tissue_edge_length_master = np.zeros((300, 390))
 k = 0
 # Iterating over all theparametsr sin the list
 for i in range(n_param_model - 1):
+    timestamp = time.strftime("%Y%m%d-%H%M%S")
     # Iterating over all teh parametsrs after the parameter in main loop
     for j in range(i + 1, n_param_model):
         # For parametsr i and j, each of them is increased and decreased by 70% and SE is run
@@ -214,13 +216,18 @@ for i in range(n_param_model - 1):
 			STEP 3C: Plotting and saving the sampled and target shape
 			"""
             # Defining filename for plot showing overlap between the sampled shape and the target shape
+
+            contour_plot_folder = "/Users/scini/Library/CloudStorage/GoogleDrive-scini@nd.edu/Shared drives/Stephen Cini Research/Projects/eMB/ucr_data/contour_evolution_plots"
+            run_time_folder_contour= os.path.join(contour_plot_folder, "hrun_" + timestamp)
+            os.makedirs(run_time_folder_contour, exist_ok=True)
+
             filename_shape_plot_apical = (
                 str(i)
                 + "_"
                 + str(j)
                 + "_"
                 + str(hess_ctr)
-                + "apical_sapled_target_xy_plot.svg"
+                + "apical_sapled_target_xy_plot.png"
             )
             filename_shape_plot_basal = (
                 str(i)
@@ -228,8 +235,10 @@ for i in range(n_param_model - 1):
                 + str(j)
                 + "_"
                 + str(hess_ctr)
-                + "basal_sapled_target_xy_plot.svg"
+                + "basal_sapled_target_xy_plot.png"
             )
+            apical_plot_path= os.path.join(run_time_folder_contour, filename_shape_plot_apical)
+            basal_plot_path= os.path.join(run_time_folder_contour, filename_shape_plot_basal)   
             # Plotting target data- apical surface
             plt.plot(xt_exp_apical, yt_exp_apical, 'black', label='Target')
             # Plotting sampled data - apical surface
@@ -239,7 +248,7 @@ for i in range(n_param_model - 1):
             plt.ylabel("y [nondimensional]")
             # Plotting legends
             plt.legend()
-            plt.savefig("contour_evolution_plots/" + filename_shape_plot_apical)
+            plt.savefig(apical_plot_path)
             plt.close()
             # Similar opeartions as bove for plotting the pouch basal surface
             plt.plot(xt_exp_basal, yt_exp_basal, 'black', label='Target')
@@ -247,7 +256,7 @@ for i in range(n_param_model - 1):
             plt.xlabel("x [nondimensional]")
             plt.ylabel("y [nondimensional]")
             plt.legend()
-            plt.savefig("contour_evolution_plots/" + filename_shape_plot_basal)
+            plt.savefig(basal_plot_path)
             plt.close()
 
             """
