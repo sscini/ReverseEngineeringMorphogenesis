@@ -106,7 +106,7 @@ param_pressure = 0.001
 # Filename for saving SE file
 se_filename = 'wingDisc'
 # Path of the SE installation
-se_path = "/home/nkumar4/Desktop/evolver_installation/src/evolver wingDisc.fe"
+se_path = "/Users/scini/Applications/Evolver270-OSX/evolver wingDisc.fe"
 
 """
 STEP 1: Reading in the target shape data (point around which sensitivity has to be calculated)

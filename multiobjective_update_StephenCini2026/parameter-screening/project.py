@@ -53,7 +53,7 @@ def write_SE_initialization_file(job):
 @flow.cmd  # It ensures that the functions returns a hell command through this decorator
 def simulate_SE_file(job):
     # Fetching evolver installation from the src location. Running the file
-    return "/home/nkumar4/Desktop/evolver_installation/src/evolver wingDisc.fe"
+    return "/Users/scini/Applications/Evolver270-OSX/evolver wingDisc.fe"
 
 
 @FlowProject.operation

@@ -131,7 +131,7 @@ num_harmonic_efd = 20
 se_filename = 'wingDisc'
 # Command to run surface evolver in ubuntu
 # Refer to installationa nd usage of SE in readme
-se_path = "/home/nkumar4/Desktop/evolver_installation/src/evolver wingDisc.fe"
+se_path = "/Users/scini/Applications/Evolver270-OSX/evolver wingDisc.fe"
 
 """
 STEP 1: Reading in the target shape data (point around which sensitivity has to be calculated)
