@@ -39,6 +39,7 @@ import signac
 import numpy as np
 import os.path
 import os
+import time
 import torch
 import gpytorch
 import subprocess
@@ -170,6 +171,8 @@ param_sampled = np.zeros((n_param_model * 2, 35))
 curvature_basal_master = np.zeros((n_param_model * 2, 129))
 tissue_edge_length_master = np.zeros((n_param_model * 2, 390))
 
+# Timestamp for the start of the sensitivity analysis to use for folder naming and later use in analysis
+timestamp_sensitivity_analysis = time.strftime("%Y%m%d-%H%M")
 # Counter for iterations
 k = 0
 for i in range(n_param_model):
@@ -237,11 +240,16 @@ for i in range(n_param_model):
         """
 		STEP 3C: Plotting the sampled and target shape
 		"""
+        contour_plot_folder = "/Users/scini/Library/CloudStorage/GoogleDrive-scini@nd.edu/Shared drives/Stephen Cini Research/Projects/eMB/ucr_data/contour_evolution_plots"
+        run_time_folder_contour= os.path.join(contour_plot_folder, "srun_" + timestamp_sensitivity_analysis)
+        os.makedirs(run_time_folder_contour, exist_ok=True)
         # Defining filename for plot showing overlap between the sampled shape and the target shape
         filename_shape_plot_apical = (
-            str(i) + str(j) + "apical_sapled_target_xy_plot.svg"
+            str(i) + str(j) + "apical_sapled_target_xy_plot.png"
         )
-        filename_shape_plot_basal = str(i) + str(j) + "basal_sapled_target_xy_plot.svg"
+        filename_shape_plot_basal = str(i) + str(j) + "basal_sapled_target_xy_plot.png"
+        apical_plot_path = os.path.join(run_time_folder_contour, filename_shape_plot_apical)
+        basal_plot_path = os.path.join(run_time_folder_contour, filename_shape_plot_basal)
         # Plotting target data
         plt.plot(xt_exp_apical, yt_exp_apical, 'black', label='Target')
         # Plotting sampled data
@@ -251,7 +259,7 @@ for i in range(n_param_model):
         plt.ylabel("y [nondimensional]")
         # Plotting legends
         plt.legend()
-        plt.savefig("contour_evolution_plots/" + filename_shape_plot_apical)
+        plt.savefig(apical_plot_path)
         plt.close()
         # plot
         plt.plot(xt_exp_basal, yt_exp_basal, 'black', label='Target')
@@ -259,7 +267,7 @@ for i in range(n_param_model):
         plt.xlabel("x [nondimensional]")
         plt.ylabel("y [nondimensional]")
         plt.legend()
-        plt.savefig("contour_evolution_plots/" + filename_shape_plot_basal)
+        plt.savefig(basal_plot_path)
         plt.close()
 
         """

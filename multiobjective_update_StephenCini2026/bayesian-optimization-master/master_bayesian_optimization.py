@@ -384,7 +384,7 @@ for i in range(n_iterations):
     # Plotting legends
     # plt.legend()
     contour_plot_folder = "/Users/scini/Library/CloudStorage/GoogleDrive-scini@nd.edu/Shared drives/Stephen Cini Research/Projects/eMB/ucr_data/contour_evolution_plots"
-    run_time_folder_contour= os.path.join(contour_plot_folder, "run_" + timestamp)
+    run_time_folder_contour= os.path.join(contour_plot_folder, "brun_" + timestamp)
     os.makedirs(run_time_folder_contour, exist_ok=True)
     contour_plot_path= os.path.join(run_time_folder_contour, filename_shape_plot)
 
