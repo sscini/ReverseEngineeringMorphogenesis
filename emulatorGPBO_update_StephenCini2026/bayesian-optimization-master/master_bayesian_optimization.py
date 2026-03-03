@@ -19,6 +19,13 @@ Institution: University of Notre Dame
 """
 
 # Adding dependencies folder to the path. Dependencies stores all the classes used in bayesian optimization BO
+import os, subprocess
+
+EVOLVER_BIN = os.environ.get("EVOLVER_BIN", "evolver")  # fallback to PATH
+env = os.environ.copy()  # includes EVOLVERPATH
+
+subprocess.run([EVOLVER_BIN, "cube.fe"], check=True, env=env)
+
 import sys
 
 sys.path.append(
