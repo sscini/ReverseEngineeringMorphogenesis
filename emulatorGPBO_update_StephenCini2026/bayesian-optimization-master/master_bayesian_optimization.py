@@ -22,7 +22,7 @@ Institution: University of Notre Dame
 import sys
 
 sys.path.append(
-    "/Users/scini/Documents/GitHub/ReverseEngineeringMorphogenesis/multiobjective_update_StephenCini2026"
+    "/Users/scini/Documents/GitHub/ReverseEngineeringMorphogenesis/emulatorGPBO_update_StephenCini2026"
 )
 
 # Importing libraries
