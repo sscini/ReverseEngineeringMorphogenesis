@@ -44,7 +44,6 @@ import torch
 import gpytorch
 import subprocess
 import gc
-import similaritymeasures
 from matplotlib import pyplot as plt
 from sklearn.preprocessing import StandardScaler
 from smt.sampling_methods import LHS
@@ -54,6 +53,8 @@ from dependencies.data_preprocessing_class import DataPreprocessing
 from dependencies.gaussian_process_regression_class import GaussianProcessRegression
 from dependencies.acquisition_functions_class import AcqisitionFunctions
 from dependencies.backends import get_backend
+from dependencies.scorers import score_frechet_distance
+from dependencies.workflow_artifacts import archive_artifact, save_contour_overlay_plot
 from parameter_samplin import SampleParameters
 
 """
@@ -171,13 +172,11 @@ for i in range(n_param_model - 1):
 			STEP 2B :  Running surface evolver and extracting shape information
 			"""
             # Writing geometry file
-            BACKEND.write_geometry(paraminputs, param_pressure, se_filename)
-            BACKEND.run_simulation()
-            sampled_features = BACKEND.extract_features('vertices.txt')
-            efd_coeff_sampled_basal = sampled_features["efd"][
+            parsed_result = BACKEND.execute_candidate(paraminputs, param_pressure)
+            efd_coeff_sampled_basal = parsed_result.features["efd"][
                 "basal_normalized_coefficients"
             ]
-            efd_coeff_sampled_apical = sampled_features["efd"][
+            efd_coeff_sampled_apical = parsed_result.features["efd"][
                 "apical_normalized_coefficients"
             ]
             xt_sampled_apical, yt_sampled_apical = spatial_efd.inverse_transform(
@@ -187,13 +186,13 @@ for i in range(n_param_model - 1):
                 efd_coeff_sampled_basal, harmonic=20
             )
             # Local curvature along the exterior pouch surface (129 points in total)
-            curvature_basal_sampled = sampled_features["curvature"]
+            curvature_basal_sampled = parsed_result.features["curvature"]
             curvature_basal_sampled_reshaped = np.reshape(
                 curvature_basal_sampled, (1, 129)
             )
             curvature_basal_master[k, :] = curvature_basal_sampled_reshaped
             # Lengths of all the edges used to make the SE model (390 in total)
-            tissue_edge_length_sampled = sampled_features["edge_length"]
+            tissue_edge_length_sampled = parsed_result.features["edge_length"]
             tissue_edge_length_sampled_reshaped = np.reshape(
                 tissue_edge_length_sampled, (1, 390)
             )
@@ -228,25 +227,8 @@ for i in range(n_param_model - 1):
             )
             apical_plot_path= os.path.join(run_time_folder_contour, filename_shape_plot_apical)
             basal_plot_path= os.path.join(run_time_folder_contour, filename_shape_plot_basal)   
-            # Plotting target data- apical surface
-            plt.plot(xt_exp_apical, yt_exp_apical, 'black', label='Target')
-            # Plotting sampled data - apical surface
-            plt.plot(xt_sampled_apical, yt_sampled_apical, 'blue', label='Sampled')
-            # Labeling axes
-            plt.xlabel("x [nondimensional]")
-            plt.ylabel("y [nondimensional]")
-            # Plotting legends
-            plt.legend()
-            plt.savefig(apical_plot_path)
-            plt.close()
-            # Similar opeartions as bove for plotting the pouch basal surface
-            plt.plot(xt_exp_basal, yt_exp_basal, 'black', label='Target')
-            plt.plot(xt_sampled_basal, yt_sampled_basal, 'blue', label='Sampled')
-            plt.xlabel("x [nondimensional]")
-            plt.ylabel("y [nondimensional]")
-            plt.legend()
-            plt.savefig(basal_plot_path)
-            plt.close()
+            save_contour_overlay_plot(exp_data_apical, parsed_result.contours["apical_normalized"], apical_plot_path, sampled_style="line")
+            save_contour_overlay_plot(exp_data_basal, parsed_result.contours["basal_normalized"], basal_plot_path, sampled_style="line")
 
             """
 			STEP 3D: Caculating frechet error
@@ -258,27 +240,31 @@ for i in range(n_param_model - 1):
             sampled_data_basal[:, 0] = xt_sampled_basal
             sampled_data_basal[:, 1] = yt_sampled_basal
             # Computing the Frechet distance for the apical surface
-            error_target_sampled_step_apical = similaritymeasures.frechet_dist(
-                exp_data_apical, sampled_data_apical
-            )
-            error_target_sampled_step_basal = similaritymeasures.frechet_dist(
-                exp_data_basal, sampled_data_basal
-            )
+            error_target_sampled_step_apical = score_frechet_distance(
+                exp_data_apical,
+                sampled_data_apical,
+                objective_name="frechet_distance_apical",
+            ).value
+            error_target_sampled_step_basal = score_frechet_distance(
+                exp_data_basal,
+                sampled_data_basal,
+                objective_name="frechet_distance_basal",
+            ).value
             # Computing Frechet distance for the basal surface
             error_target_sampled_apical.append(error_target_sampled_step_apical)
             error_target_sampled_basal.append(error_target_sampled_step_basal)
 
             # Saving vertices
-            command_save_vertices = (
-                "cp vertices.txt vertices_"
+            archive_artifact(
+                parsed_result.artifacts.get("vertices_path"),
+                "vertices_"
                 + str(i)
                 + "_"
                 + str(j)
                 + "_"
                 + str(hess_ctr)
-                + ".txt"
+                + ".txt",
             )
-            os.system(command_save_vertices)
             BACKEND.cleanup_generated_files()
             # Removing variables that are not necessary for memory issues
             del xt_sampled_apical

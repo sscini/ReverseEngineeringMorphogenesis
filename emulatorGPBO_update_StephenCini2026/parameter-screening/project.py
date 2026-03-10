@@ -63,12 +63,14 @@ def simulate_SE_file(job):
 @FlowProject.operation
 @FlowProject.post(output_file_exist_check)
 def write_geometrical_features(job):
-    features = BACKEND.extract_features(job.fn("vertices.txt"))
-    job.document["length"] = features["edge_length"]
-    job.document["e_f_d"] = features["efd"]["basal_coefficients"]
-    job.document["e_f_d_norm"] = features["efd"]["basal_normalized_coefficients"]
-    job.document["e_f_d_rot"] = features["efd"]["basal_rotation"]
-    job.document["curvature"] = features["curvature"]
+    parsed_result = BACKEND.parse_output(job.fn("vertices.txt"))
+    job.document["length"] = parsed_result.features["edge_length"]
+    job.document["e_f_d"] = parsed_result.features["efd"]["basal_coefficients"]
+    job.document["e_f_d_norm"] = parsed_result.features["efd"][
+        "basal_normalized_coefficients"
+    ]
+    job.document["e_f_d_rot"] = parsed_result.features["efd"]["basal_rotation"]
+    job.document["curvature"] = parsed_result.features["curvature"]
 
 
 if __name__ == '__main__':

@@ -1,21 +1,21 @@
 import numpy as np
 
+from dependencies.workflow_types import ParsedResult, TargetData
+
 
 class DummyBackend:
     def __init__(self):
         self.calls = []
 
     def load_target(self, target_source, target_type):
-        return type("Target", (), {"contour": np.array([[0.0, 0.0], [1.0, 1.0]])})()
+        contour = np.ones((20, 2))
+        return TargetData(contours={"primary": contour})
 
-    def _coefficients_to_contour(self, coefficients):
+    def contour_from_coefficients(self, coefficients):
         contour = np.zeros((coefficients.shape[0], 2))
         contour[:, 0] = coefficients[:, 0]
         contour[:, 1] = coefficients[:, 1]
         return contour
-
-    def evaluate_training_data(self, target_contour, sim_data):
-        return 0.25
 
     def sample_to_model_parameters(self, x_sampled, base_parameters, sampled_indices):
         params = list(base_parameters)
@@ -23,23 +23,15 @@ class DummyBackend:
             params[sampled_index] = np.asarray(x_sampled).reshape(-1)[idx]
         return params
 
-    def evaluate(self, model_parameters, target, param_pressure):
+    def execute_candidate(self, model_parameters, param_pressure):
         self.calls.append((model_parameters, param_pressure))
-        return type(
-            "Evaluation",
-            (),
-            {
-                "objective_value": 1.5,
-                "contours": {
-                    "primary": np.array([[0.0, 0.0], [1.0, 1.0]]),
-                    "target": target.contour,
-                },
-                "features": {},
-                "artifacts": {},
-            },
-        )()
+        return ParsedResult(
+            contours={"primary": np.ones((20, 2))},
+            features={},
+            artifacts={},
+        )
 
-    def save_artifacts(self, iteration, evaluation, output_config):
+    def cleanup_generated_files(self, run_dir=None):
         return None
 
 
@@ -94,4 +86,4 @@ def test_bo_loop_uses_backend_contract(bo_module, monkeypatch, tmp_path):
     assert len(backend.calls) == 1
     assert results["train_x"].shape[0] == 2
     assert results["train_y"].shape[0] == 2
-    assert results["error_target_sampled"] == [1.5]
+    assert results["error_target_sampled"] == [0.0]

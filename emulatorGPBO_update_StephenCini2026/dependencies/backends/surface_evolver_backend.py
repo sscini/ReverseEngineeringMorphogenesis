@@ -1,31 +1,14 @@
 from __future__ import annotations
 
 import os
-import shutil
 import subprocess
-from dataclasses import dataclass, field
 
-import matplotlib.pyplot as plt
 import numpy as np
-import similaritymeasures
 import spatial_efd
 
 from dependencies.feature_extractor_4 import FeatureExtractor
 from dependencies.geometry_writer import GeometryWriter
-
-
-@dataclass
-class TargetData:
-    contour: np.ndarray
-    metadata: dict = field(default_factory=dict)
-
-
-@dataclass
-class BackendEvaluation:
-    objective_value: float
-    contours: dict
-    features: dict
-    artifacts: dict = field(default_factory=dict)
+from dependencies.workflow_types import ParsedResult, TargetData
 
 
 class SurfaceEvolverBackend:
@@ -72,9 +55,9 @@ class SurfaceEvolverBackend:
                 contour[:, 0], contour[:, 1], self.num_harmonics_efd
             )
             coeff, rotation = spatial_efd.normalize_efd(coeff, size_invariant=True)
-            primary_contour = self._coefficients_to_contour(coeff)
+            primary_contour = self.contour_from_coefficients(coeff)
             return TargetData(
-                contour=primary_contour,
+                contours={"primary": primary_contour, "raw": contour},
                 metadata={
                     "source": target_source,
                     "target_type": target_type,
@@ -84,13 +67,19 @@ class SurfaceEvolverBackend:
             )
 
         if target_type == "surface_evolver":
-            features = self.extract_features(target_source)
+            parsed_result = self.parse_output(target_source)
             return TargetData(
-                contour=features["contours"]["basal_raw"],
+                contours={
+                    "primary": parsed_result.contours["primary"],
+                    "basal_raw": parsed_result.contours["basal_raw"],
+                    "basal_normalized": parsed_result.contours["basal_normalized"],
+                    "apical_raw": parsed_result.contours["apical_raw"],
+                    "apical_normalized": parsed_result.contours["apical_normalized"],
+                },
                 metadata={
                     "source": target_source,
                     "target_type": target_type,
-                    "features": features,
+                    "parsed_result": parsed_result,
                 },
             )
 
@@ -112,13 +101,24 @@ class SurfaceEvolverBackend:
             output_file_name or self.se_filename,
         )
 
+    def contour_from_coefficients(self, coefficients):
+        xt, yt = spatial_efd.inverse_transform(
+            coefficients, harmonic=self.num_harmonics_efd
+        )
+        contour = np.zeros((len(xt), 2))
+        contour[:, 0] = xt
+        contour[:, 1] = yt
+        return contour
+
     def extract_features(self, vertices_path):
         extractor = FeatureExtractor(vertices_path, self.edge_data_path)
         efd = extractor.extract_tissue_efd_components(self.num_harmonics_efd)
-        basal_raw = self._coefficients_to_contour(efd["basal_coefficients"])
-        basal_normalized = self._coefficients_to_contour(efd["basal_normalized_coefficients"])
-        apical_raw = self._coefficients_to_contour(efd["apical_coefficients"])
-        apical_normalized = self._coefficients_to_contour(
+        basal_raw = self.contour_from_coefficients(efd["basal_coefficients"])
+        basal_normalized = self.contour_from_coefficients(
+            efd["basal_normalized_coefficients"]
+        )
+        apical_raw = self.contour_from_coefficients(efd["apical_coefficients"])
+        apical_normalized = self.contour_from_coefficients(
             efd["apical_normalized_coefficients"]
         )
         return {
@@ -133,66 +133,31 @@ class SurfaceEvolverBackend:
             },
         }
 
-    def evaluate(self, model_parameters, target, param_pressure, run_dir=None):
-        self.write_geometry(model_parameters, param_pressure)
-        self.run_simulation(cwd=run_dir)
-
-        vertices_path = os.path.join(run_dir or ".", "vertices.txt")
+    def parse_output(self, vertices_path):
         features = self.extract_features(vertices_path)
-        primary_contour = features["contours"]["basal_raw"]
-        objective_value = similaritymeasures.frechet_dist(target.contour, primary_contour)
-
-        return BackendEvaluation(
-            objective_value=float(objective_value),
+        return ParsedResult(
             contours={
-                "primary": primary_contour,
+                "primary": features["contours"]["basal_raw"],
                 "basal_raw": features["contours"]["basal_raw"],
                 "basal_normalized": features["contours"]["basal_normalized"],
                 "apical_raw": features["contours"]["apical_raw"],
                 "apical_normalized": features["contours"]["apical_normalized"],
-                "target": target.contour,
             },
             features=features,
             artifacts={"vertices_path": vertices_path},
         )
 
-    def evaluate_training_data(self, target_contour, simulated_contour):
-        return float(similaritymeasures.frechet_dist(target_contour, simulated_contour))
+    def execute_candidate(self, model_parameters, param_pressure, run_dir=None):
+        self.write_geometry(model_parameters, param_pressure)
+        self.run_simulation(cwd=run_dir)
+        vertices_path = os.path.join(run_dir or ".", "vertices.txt")
+        return self.parse_output(vertices_path)
 
-    def save_artifacts(self, iteration, evaluation, output_config=None):
-        output_config = output_config or {}
-        vertices_dir = output_config.get("vertices_dir")
-        contour_dir = output_config.get("contour_dir")
-        contour_prefix = output_config.get("contour_prefix", "")
-
-        vertices_path = evaluation.artifacts.get("vertices_path")
-        if vertices_dir and vertices_path and os.path.exists(vertices_path):
-            os.makedirs(vertices_dir, exist_ok=True)
-            archived_vertices = os.path.join(vertices_dir, f"vertices_{iteration}.txt")
-            shutil.copyfile(vertices_path, archived_vertices)
-            evaluation.artifacts["archived_vertices_path"] = archived_vertices
-
-        if contour_dir:
-            os.makedirs(contour_dir, exist_ok=True)
-            contour_path = os.path.join(
-                contour_dir, f"{contour_prefix}{iteration}_sampled_target_xy_plot.png"
-            )
-            target = evaluation.contours["target"]
-            sampled = evaluation.contours["primary"]
-            plt.scatter(target[:, 0], target[:, 1], color="black")
-            plt.scatter(sampled[:, 0], sampled[:, 1], color="blue")
-            plt.xlabel("x [nondimensional]")
-            plt.ylabel("y [nondimensional]")
-            plt.savefig(contour_path)
-            plt.close()
-            evaluation.artifacts["contour_plot_path"] = contour_path
-
-        self.cleanup_generated_files()
-
-    def cleanup_generated_files(self):
+    def cleanup_generated_files(self, run_dir=None):
         for filename in self.cleanup_files:
-            if os.path.exists(filename):
-                os.remove(filename)
+            file_path = os.path.join(run_dir or ".", filename)
+            if os.path.exists(file_path):
+                os.remove(file_path)
 
     def _load_xy_contour(self, geometry_data):
         if os.stat(geometry_data).st_size == 0:
@@ -207,13 +172,4 @@ class SurfaceEvolverBackend:
         contour = np.zeros((len(x_coords), 2))
         contour[:, 0] = x_coords
         contour[:, 1] = y_coords
-        return contour
-
-    def _coefficients_to_contour(self, coefficients):
-        xt, yt = spatial_efd.inverse_transform(
-            coefficients, harmonic=self.num_harmonics_efd
-        )
-        contour = np.zeros((len(xt), 2))
-        contour[:, 0] = xt
-        contour[:, 1] = yt
         return contour

@@ -20,6 +20,8 @@ from dependencies.acquisition_functions_class import AcqisitionFunctions
 from dependencies.backends import get_backend
 from dependencies.data_preprocessing_class import DataPreprocessing
 from dependencies.gaussian_process_regression_class import GaussianProcessRegression
+from dependencies.scorers import score_frechet_distance, score_parsed_result_frechet
+from dependencies.workflow_artifacts import archive_artifact, save_contour_overlay_plot
 
 
 @dataclass
@@ -141,12 +143,16 @@ def prepare_bo_data(config, master_parameter_input_n, master_feature_output, bac
 
     error_simulation_target_data = np.zeros(config.num_samples)
     for i in range(config.num_samples):
-        temp = master_feature_output[i, :]
-        temp2 = np.reshape(temp, (config.num_harmonics_efd, 4))
-        sim_data = backend._coefficients_to_contour(temp2)
-        error_simulation_target_data[i] = backend.evaluate_training_data(
-            target.contour, sim_data
+        coefficients = np.reshape(
+            master_feature_output[i, :], (config.num_harmonics_efd, 4)
         )
+        sim_data = backend.contour_from_coefficients(coefficients)
+        objective_result = score_frechet_distance(
+            target.primary_contour,
+            sim_data,
+            objective_name="frechet_distance_training_data",
+        )
+        error_simulation_target_data[i] = objective_result.value
 
     data_y = np.reshape(error_simulation_target_data, (config.num_samples, 1)) * (-1)
     return {
@@ -225,29 +231,27 @@ def run_bayesian_optimization(config=None, backend=None):
         model_parameters = backend.sample_to_model_parameters(
             x_sampled, config.paraminputs_stable, config.lhs_parameter_index
         )
-        evaluation = backend.evaluate(
+        parsed_result = backend.execute_candidate(
             model_parameters,
-            prepared["target"],
             config.param_pressure,
         )
-        backend.save_artifacts(
-            i,
-            evaluation,
-            {
-                "vertices_dir": config.output_data_dir,
-                "contour_dir": _runtime_output_dir(
-                    config.contour_plot_dir, f"brun_{config.timestamp}"
-                ),
-            },
+        objective_result = score_parsed_result_frechet(
+            prepared["target"],
+            parsed_result,
+            objective_name="frechet_distance_basal",
         )
+        persist_candidate_artifacts(config, i, prepared["target"], parsed_result)
 
-        y_sampled = np.reshape(evaluation.objective_value, (1, 1)) * (-1)
+        y_sampled = np.reshape(objective_result.value, (1, 1)) * (-1)
         train_x = np.vstack(
-            (train_x, np.reshape(x_sampled_logscale_standardized, (1, config.num_parameters_lhs)))
+            (
+                train_x,
+                np.reshape(x_sampled_logscale_standardized, (1, config.num_parameters_lhs)),
+            )
         )
         train_y = np.vstack((train_y, y_sampled))
 
-        error_target_sampled.append(evaluation.objective_value)
+        error_target_sampled.append(objective_result.value)
         iter_counter.append(i + 1)
         param_sampled[i, :] = np.asarray(x_sampled).reshape(-1)
 
@@ -258,6 +262,7 @@ def run_bayesian_optimization(config=None, backend=None):
             i,
             config.num_samples,
         )
+        backend.cleanup_generated_files()
 
         del gpr
         del model
@@ -265,7 +270,10 @@ def run_bayesian_optimization(config=None, backend=None):
         gc.collect()
 
     os.makedirs(config.output_data_dir, exist_ok=True)
-    np.save(os.path.join(config.output_data_dir, "error_target_sampled.npy"), error_target_sampled)
+    np.save(
+        os.path.join(config.output_data_dir, "error_target_sampled.npy"),
+        error_target_sampled,
+    )
     np.save(os.path.join(config.output_data_dir, "param_sampled.npy"), param_sampled)
     np.save(os.path.join(config.output_data_dir, "train_x.npy"), train_x)
     np.save(os.path.join(config.output_data_dir, "train_y.npy"), train_y)
@@ -277,6 +285,23 @@ def run_bayesian_optimization(config=None, backend=None):
         "train_x": train_x,
         "train_y": train_y,
     }
+
+
+def persist_candidate_artifacts(config, iteration, target, parsed_result):
+    vertices_path = parsed_result.artifacts.get("vertices_path")
+    if config.output_data_dir and vertices_path:
+        archive_artifact(
+            vertices_path,
+            os.path.join(config.output_data_dir, f"vertices_{iteration}.txt"),
+        )
+
+    contour_dir = _runtime_output_dir(config.contour_plot_dir, f"brun_{config.timestamp}")
+    if contour_dir:
+        save_contour_overlay_plot(
+            target.primary_contour,
+            parsed_result.primary_contour,
+            os.path.join(contour_dir, f"{iteration}_sampled_target_xy_plot.png"),
+        )
 
 
 def _runtime_output_dir(base_dir, run_name):
