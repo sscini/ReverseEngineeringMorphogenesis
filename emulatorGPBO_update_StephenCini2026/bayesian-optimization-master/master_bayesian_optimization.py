@@ -6,8 +6,14 @@ model parameters from wing imaginal disc tissue cross section data.
 
 import gc
 import os
+import sys
 import time
 from dataclasses import dataclass, field
+
+SCRIPT_DIR = os.path.abspath(os.path.dirname(__file__))
+REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
+if REPO_ROOT not in sys.path:
+    sys.path.insert(0, REPO_ROOT)
 
 import gpytorch
 import matplotlib.pyplot as plt
@@ -22,6 +28,12 @@ from dependencies.data_preprocessing_class import DataPreprocessing
 from dependencies.gaussian_process_regression_class import GaussianProcessRegression
 from dependencies.scorers import score_frechet_distance, score_parsed_result_frechet
 from dependencies.workflow_artifacts import archive_artifact, save_contour_overlay_plot
+
+
+def _script_path(path):
+    if path is None or os.path.isabs(path):
+        return path
+    return os.path.join(SCRIPT_DIR, path)
 
 
 @dataclass
@@ -168,6 +180,12 @@ def prepare_bo_data(config, master_parameter_input_n, master_feature_output, bac
 
 def run_bayesian_optimization(config=None, backend=None):
     config = config or BOConfig()
+    config.geometry_data = _script_path(config.geometry_data)
+    config.input_parameter_path = _script_path(config.input_parameter_path)
+    config.input_feature_path = _script_path(config.input_feature_path)
+    config.output_data_dir = _script_path(config.output_data_dir)
+    config.contour_plot_dir = _script_path(config.contour_plot_dir)
+    config.error_plot_dir = _script_path(config.error_plot_dir)
     backend = backend or get_backend(
         config.method,
         se_filename=config.se_filename,

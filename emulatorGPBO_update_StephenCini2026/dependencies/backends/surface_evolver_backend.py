@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 
 import numpy as np
@@ -33,7 +34,15 @@ class SurfaceEvolverBackend:
         ]
 
     def _default_runner(self, command, cwd=None):
-        subprocess.run(command, check=True, cwd=cwd)
+        try:
+            subprocess.run(command, check=True, cwd=cwd)
+        except FileNotFoundError as exc:
+            executable = command if isinstance(command, str) else command[0]
+            raise FileNotFoundError(
+                "Surface Evolver executable not found. "
+                f"Tried '{executable}'. Install Surface Evolver and ensure it is on PATH, "
+                "or set EVOLVER_BIN to the full executable path."
+            ) from exc
 
     def build_command(self, se_input_filename=None):
         if self.evolver_command is not None:
@@ -41,6 +50,16 @@ class SurfaceEvolverBackend:
                 return self.evolver_command
             return list(self.evolver_command)
         evolver_bin = os.environ.get("EVOLVER_BIN", "evolver")
+        if os.path.sep in evolver_bin:
+            if not os.path.exists(evolver_bin):
+                raise FileNotFoundError(
+                    f"EVOLVER_BIN points to missing path: '{evolver_bin}'"
+                )
+        elif shutil.which(evolver_bin) is None:
+            raise FileNotFoundError(
+                f"Surface Evolver executable '{evolver_bin}' not found on PATH. "
+                "Set EVOLVER_BIN to the full executable path."
+            )
         input_name = se_input_filename or f"{self.se_filename}.fe"
         return [evolver_bin, input_name]
 

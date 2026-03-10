@@ -1,0 +1,23 @@
+name: reverse-eng-mobo-s26-safe
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - pip
+  - numpy=1.26.4
+  - scipy
+  - pandas
+  - matplotlib
+  - scikit-learn
+  - pytorch
+  - torchvision
+  - llvm-openmp
+  - libopenblas
+  - openpyxl
+  - signac
+  - signac-flow
+  - gpytorch
+  - smt
+  - pip:
+      - similaritymeasures==1.4.0
+      - spatial-efd==1.2.1

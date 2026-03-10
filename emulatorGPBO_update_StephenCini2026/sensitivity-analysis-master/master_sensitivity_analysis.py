@@ -24,11 +24,19 @@ Institution: University of Notre Dame
 """
 
 # Adding dependencies folder to the path. Dependencies stores all teh classes used in bayesian optimization BO
+import os
 import sys
 
-sys.path.append(
-    "/Users/scini/Documents/GitHub/ReverseEngineeringMorphogenesis/multiobjective_update_StephenCini2026"
-)
+SCRIPT_DIR = os.path.abspath(os.path.dirname(__file__))
+REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
+if REPO_ROOT not in sys.path:
+    sys.path.insert(0, REPO_ROOT)
+
+
+def _script_path(path):
+    if path is None or os.path.isabs(path):
+        return path
+    return os.path.join(SCRIPT_DIR, path)
 
 # Importing libraries
 import pandas as pd
@@ -38,7 +46,6 @@ import math
 import signac
 import numpy as np
 import os.path
-import os
 import time
 import torch
 import gpytorch
@@ -129,16 +136,19 @@ paraminputs_stable = [
 # Total number of harmonics for calculation of EFD coefficients
 num_harmonic_efd = 20
 # name of teh file that we want to save the SE model input file as
-se_filename = 'wingDisc'
+se_filename = _script_path('wingDisc')
 BACKEND = get_backend(
-    "SurfaceEvolver", se_filename=se_filename, num_harmonics_efd=num_harmonic_efd
+    "SurfaceEvolver",
+    se_filename=se_filename,
+    edge_data_path=_script_path("input_data/log_edges.xlsx"),
+    num_harmonics_efd=num_harmonic_efd,
 )
 
 """
 STEP 1: Reading in the target shape data (point around which sensitivity has to be calculated)
 """
 # Reading the vertices output file from a sample SE simulation output with known parameters
-target_features = BACKEND.extract_features('input_data/vertices_target_SE.txt')
+target_features = BACKEND.extract_features(_script_path('input_data/vertices_target_SE.txt'))
 coeffs_exp_basal = target_features["efd"]["basal_normalized_coefficients"]
 coeffs_exp_apical = target_features["efd"]["apical_normalized_coefficients"]
 # Obtaining normalized x and y coordinates for the apical surface of the tissue
@@ -169,6 +179,7 @@ tissue_edge_length_master = np.zeros((n_param_model * 2, 390))
 
 # Timestamp for the start of the sensitivity analysis to use for folder naming and later use in analysis
 timestamp_sensitivity_analysis = time.strftime("%Y%m%d-%H%M")
+os.makedirs(_script_path("output_data_files"), exist_ok=True)
 # Counter for iterations
 k = 0
 for i in range(n_param_model):
@@ -271,7 +282,9 @@ for i in range(n_param_model):
         # Saving vertices
         archive_artifact(
             parsed_result.artifacts.get("vertices_path"),
-            "vertices_" + str(i) + "_" + str(j) + ".txt",
+            _script_path(
+                os.path.join("output_data_files", "vertices_" + str(i) + "_" + str(j) + ".txt")
+            ),
         )
         BACKEND.cleanup_generated_files()
 
@@ -286,9 +299,9 @@ for i in range(n_param_model):
 """Saving important arrays for further analysis
 """
 np.save(
-    'output_data_files/error_target_sampled_apical.npy', error_target_sampled_apical
+    _script_path('output_data_files/error_target_sampled_apical.npy'), error_target_sampled_apical
 )
-np.save('output_data_files/error_target_sampled_basal.npy', error_target_sampled_basal)
-np.save('output_data_files/curvature_basal_master.npy', curvature_basal_master)
-np.save('output_data_files/tissue_edge_length_master.npy', tissue_edge_length_master)
-np.save('output_data_files/param_sampled.npy', param_sampled)
+np.save(_script_path('output_data_files/error_target_sampled_basal.npy'), error_target_sampled_basal)
+np.save(_script_path('output_data_files/curvature_basal_master.npy'), curvature_basal_master)
+np.save(_script_path('output_data_files/tissue_edge_length_master.npy'), tissue_edge_length_master)
+np.save(_script_path('output_data_files/param_sampled.npy'), param_sampled)

@@ -39,7 +39,9 @@ class AcqisitionFunctions:
         self.x_test = x_test
         self.y_test = y_test
 
-    def expected_improvement(self, model_gpr, likelihood_gpr, exploration_parameter):
+    def expected_improvement(
+        self, model_gpr, likelihood_gpr, exploration_parameter, batch_size=4096
+    ):
         """Arguements:
         1. model_gpr, likelihood_gpr:Trained GP regression model obejcts
         2. exploration_parameter: (Float), Used during computation of expcted improvement to control exploration and expolitation
@@ -67,14 +69,27 @@ class AcqisitionFunctions:
         # Get into evaluation (predictive posterior) mode
         model_gpr.eval()
         likelihood_gpr.eval()
-        # Convert the sampled numpy array to a tensor format for predictions
-        Xsampled_torch = torch.from_numpy(self.Xsampled)
-        # Make predictions by feeding model through likelihood
+        # Predict in batches to keep memory bounded for large candidate sets.
+        n_points = self.Xsampled.shape[0]
+        model_predictions_mean = np.zeros(n_points)
+        model_predictions_variance = np.zeros(n_points)
+        model_param = next(model_gpr.parameters())
+        model_dtype = model_param.dtype
+        model_device = model_param.device
+
         with torch.no_grad(), gpytorch.settings.fast_pred_var():
-            # mean and variance prediction
-            observed_prediction = likelihood_gpr(model_gpr(Xsampled_torch))
-            model_predictions_mean = observed_prediction.mean.numpy()
-            model_predictions_variance = observed_prediction.variance.numpy()
+            for start in range(0, n_points, batch_size):
+                end = min(start + batch_size, n_points)
+                xs_batch = torch.from_numpy(self.Xsampled[start:end, :]).to(
+                    dtype=model_dtype, device=model_device
+                )
+                observed_prediction = likelihood_gpr(model_gpr(xs_batch))
+                model_predictions_mean[start:end] = (
+                    observed_prediction.mean.detach().cpu().numpy()
+                )
+                model_predictions_variance[start:end] = (
+                    observed_prediction.variance.detach().cpu().numpy()
+                )
 
         # x_optimim = argmax(y_test): calculate y_test(x_optimum)
         f_optimum = np.max(self.y_test)
