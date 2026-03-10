@@ -13,13 +13,14 @@ Institution: University of Notre Dame
 
 # importing the flow library
 import os
+
 import flow
 from flow import FlowProject, directives
 
-# Importing the geometry_writer class containing geometryWriter function that is used to write
-# Surface Evolver initialization file
-from dependencies.geometry_writer import GeometryWriter
-from dependencies.feature_extractor_4 import FeatureExtractor
+from dependencies.backends import get_backend
+
+
+BACKEND = get_backend("SurfaceEvolver")
 
 
 # Checking if an operation has been executed by checking f the initialization file exists
@@ -40,10 +41,10 @@ def output_file_exist_check(job):
 @FlowProject.operation
 @FlowProject.post(SE_file_exist_check)
 def write_SE_initialization_file(job):
-    GeometryWriter(
+    BACKEND.write_geometry(
         job.sp.parameter_model,
         job.sp.parameter_pressure,
-        job.fn(job.sp.output_file_name),
+        job.fn(job.sp.output_file_name).replace(".fe", ""),
     )
 
 
@@ -53,19 +54,21 @@ def write_SE_initialization_file(job):
 @flow.cmd  # It ensures that the functions returns a hell command through this decorator
 def simulate_SE_file(job):
     # Fetching evolver installation from the src location. Running the file
-    return "/Users/scini/Applications/Evolver270-OSX/evolver wingDisc.fe"
+    command = BACKEND.build_command(se_input_filename="wingDisc.fe")
+    if isinstance(command, str):
+        return command
+    return " ".join(command)
 
 
 @FlowProject.operation
 @FlowProject.post(output_file_exist_check)
 def write_geometrical_features(job):
-    fe = FeatureExtractor(job.fn("vertices.txt"), 'input_data/log_edges.xlsx')
-    efd_coeff, efd_coeff_norm, angle_rotated = fe.tissue_efd_coeff(20)
-    job.document["length"] = fe.edge_length()
-    job.document["e_f_d"] = efd_coeff
-    job.document["e_f_d_norm"] = efd_coeff_norm
-    job.document["e_f_d_rot"] = angle_rotated
-    job.document["curvature"] = fe.tissue_local_curvature()
+    features = BACKEND.extract_features(job.fn("vertices.txt"))
+    job.document["length"] = features["edge_length"]
+    job.document["e_f_d"] = features["efd"]["basal_coefficients"]
+    job.document["e_f_d_norm"] = features["efd"]["basal_normalized_coefficients"]
+    job.document["e_f_d_rot"] = features["efd"]["basal_rotation"]
+    job.document["curvature"] = features["curvature"]
 
 
 if __name__ == '__main__':

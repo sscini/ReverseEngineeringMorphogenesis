@@ -186,6 +186,24 @@ class FeatureExtractor:
         else:
             # Return 6 zeros/nones to maintain the structure
             return 0, 0, 0, 0, 0, 0
+
+    def extract_tissue_efd_components(self, harmonic):
+        (
+            basal_coefficients,
+            basal_normalized_coefficients,
+            basal_rotation,
+            apical_coefficients,
+            apical_normalized_coefficients,
+            apical_rotation,
+        ) = self.tissue_efd_coeff(harmonic)
+        return {
+            "basal_coefficients": basal_coefficients,
+            "basal_normalized_coefficients": basal_normalized_coefficients,
+            "basal_rotation": basal_rotation,
+            "apical_coefficients": apical_coefficients,
+            "apical_normalized_coefficients": apical_normalized_coefficients,
+            "apical_rotation": apical_rotation,
+        }
         
         # # Old code, keeping until confirmed that the new code is working
         # if self.vpos_x != 0:

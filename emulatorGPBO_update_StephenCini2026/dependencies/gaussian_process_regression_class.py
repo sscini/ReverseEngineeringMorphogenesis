@@ -63,9 +63,10 @@ class GaussianProcessRegression:
         # Defining models for GPR
         model = ExactGPModel(train_x_t, train_y_t, likelihood)
         # Defining model hperparameters for initialization
+        num_dimensions = self.train_x.shape[1]
         hypers = {
             'covar_module.base_kernel.lengthscale': torch.tensor(
-                [[1, 1, 1, 1, 1, 1, 1]]
+                [np.ones(num_dimensions)]
             )
         }
         if model_initialize_check == 1:

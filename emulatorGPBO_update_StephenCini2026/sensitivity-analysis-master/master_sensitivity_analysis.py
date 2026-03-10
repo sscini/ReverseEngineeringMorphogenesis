@@ -53,8 +53,7 @@ from smt.sampling_methods import LHS
 from dependencies.data_preprocessing_class import DataPreprocessing
 from dependencies.gaussian_process_regression_class import GaussianProcessRegression
 from dependencies.acquisition_functions_class import AcqisitionFunctions
-from dependencies.geometry_writer import GeometryWriter
-from dependencies.feature_extractor_4 import FeatureExtractor
+from dependencies.backends import get_backend
 
 """
 User derived inputs
@@ -130,21 +129,17 @@ paraminputs_stable = [
 num_harmonic_efd = 20
 # name of teh file that we want to save the SE model input file as
 se_filename = 'wingDisc'
-# Command to run surface evolver in ubuntu
-# Refer to installationa nd usage of SE in readme
-se_path = "/Users/scini/Applications/Evolver270-OSX/evolver wingDisc.fe"
+BACKEND = get_backend(
+    "SurfaceEvolver", se_filename=se_filename, num_harmonics_efd=num_harmonic_efd
+)
 
 """
 STEP 1: Reading in the target shape data (point around which sensitivity has to be calculated)
 """
 # Reading the vertices output file from a sample SE simulation output with known parameters
-fe_exp = FeatureExtractor(
-    'input_data/vertices_target_SE.txt', 'input_data/log_edges.xlsx'
-)
-# Extracting the efd coefficients
-dummy11, coeffs_exp_basal, dummy12, dummy21, coeffs_exp_apical, dummy22 = (
-    fe_exp.tissue_efd_coeff(num_harmonic_efd)
-)
+target_features = BACKEND.extract_features('input_data/vertices_target_SE.txt')
+coeffs_exp_basal = target_features["efd"]["basal_normalized_coefficients"]
+coeffs_exp_apical = target_features["efd"]["apical_normalized_coefficients"]
 # Obtaining normalized x and y coordinates for the apical surface of the tissue
 xt_exp_apical, yt_exp_apical = spatial_efd.inverse_transform(
     coeffs_exp_apical, harmonic=num_harmonic_efd
@@ -204,20 +199,15 @@ for i in range(n_param_model):
 		STEP 2B :  Running surface evolver and extracting shape information
 		"""
         # Writing geometry file
-        GeometryWriter(paraminputs, param_pressure, se_filename)
-        # Running surface evolver simulations
-        os.system(se_path)
-        # Calling in the featureExtractor class to extract geometrical features of the output data
-        fe = FeatureExtractor('vertices.txt', 'input_data/log_edges.xlsx')
-        # Extracting EFD coefficients and the xy coordinates of the normalized apical and basal surface of tissue
-        (
-            dummy11,
-            efd_coeff_sampled_basal,
-            dummy12,
-            dummy21,
-            efd_coeff_sampled_apical,
-            dummy22,
-        ) = fe.tissue_efd_coeff(num_harmonic_efd)
+        BACKEND.write_geometry(paraminputs, param_pressure, se_filename)
+        BACKEND.run_simulation()
+        sampled_features = BACKEND.extract_features('vertices.txt')
+        efd_coeff_sampled_basal = sampled_features["efd"][
+            "basal_normalized_coefficients"
+        ]
+        efd_coeff_sampled_apical = sampled_features["efd"][
+            "apical_normalized_coefficients"
+        ]
         xt_sampled_apical, yt_sampled_apical = spatial_efd.inverse_transform(
             efd_coeff_sampled_apical, harmonic=num_harmonic_efd
         )
@@ -225,11 +215,11 @@ for i in range(n_param_model):
             efd_coeff_sampled_basal, harmonic=num_harmonic_efd
         )
         # Calculating the curvature of teh basal epitehlia (Outer surface)
-        curvature_basal_sampled = fe.tissue_local_curvature()
+        curvature_basal_sampled = sampled_features["curvature"]
         curvature_basal_sampled_reshaped = np.reshape(curvature_basal_sampled, (1, 129))
         curvature_basal_master[k, :] = curvature_basal_sampled_reshaped
         # Calculating the length of all teh edges in surface evolver model
-        tissue_edge_length_sampled = fe.edge_length()
+        tissue_edge_length_sampled = sampled_features["edge_length"]
         tissue_edge_length_sampled_reshaped = np.reshape(
             tissue_edge_length_sampled, (1, 390)
         )
@@ -295,17 +285,13 @@ for i in range(n_param_model):
             "cp vertices.txt vertices_" + str(i) + "_" + str(j) + ".txt"
         )
         os.system(command_save_vertices)
-        # Deleting unnecesssary surface evolver files
-        os.system("rm vertices.txt")
-        os.system("rm energylog.txt")
-        os.system("rm specificenergylog.txt")
+        BACKEND.cleanup_generated_files()
 
         # Removing unnecessary variables
         del xt_sampled_apical
         del yt_sampled_apical
         del xt_sampled_basal
         del yt_sampled_basal
-        del fe
         gc.collect()
 
 
